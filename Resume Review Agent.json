@@ -1,0 +1,277 @@
+{
+  "name": "Resume Review Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "AI Resume Review Agent",
+        "formDescription": "Get tailored, constructive feedback on your resume. Paste your resume text OR upload a PDF, and tell us the job role you are targeting.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Target Job Role",
+              "placeholder": "e.g. Senior Backend Engineer",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Resume Text",
+              "fieldType": "textarea",
+              "placeholder": "Paste your full resume text here (leave empty if uploading a PDF instead)"
+            },
+            {
+              "fieldLabel": "Resume_PDF",
+              "fieldType": "file",
+              "multipleFiles": false,
+              "acceptFileTypes": ".pdf"
+            }
+          ]
+        },
+        "responseMode": "lastNode",
+        "options": {
+          "buttonLabel": "Review My Resume",
+          "path": "resume-review"
+        }
+      },
+      "id": "f932ebd0-c34f-4951-b151-484d4f5c4582",
+      "name": "Resume Review Form",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.6,
+      "position": [
+        0,
+        112
+      ],
+      "webhookId": "8655386a-acdc-4d5b-9e13-524159477d45"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "has-text",
+              "leftValue": "={{ $json['Resume Text'] }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "93d25ca7-3888-46a6-bdfa-24175748a198",
+      "name": "Resume Text Provided?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        224,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "role",
+              "name": "jobRole",
+              "type": "string",
+              "value": "={{ $json['Target Job Role'] }}"
+            },
+            {
+              "id": "resume",
+              "name": "resumeText",
+              "type": "string",
+              "value": "={{ $json['Resume Text'] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c4e7caf6-ee5f-4ffa-8232-4397b6e4f7d1",
+      "name": "Use Pasted Text",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        672,
+        16
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are an expert resume reviewer and career coach.\nAnalyze the resume below for a candidate targeting this role: \"{{ $json.jobRole }}\".\n\nRESUME:\n\"\"\"\n{{ $json.resumeText }}\n\"\"\"\n\nProduce a detailed, constructive evaluation with these clearly labeled sections:\n1. Overall Impression & Fit Score (0-100) for the target role, with a one-paragraph rationale.\n2. Missing or Weak Sections (e.g. summary, skills, experience, education, contact info) and what to add.\n3. Weak Descriptions & Bullet Points: quote weak lines and rewrite them using strong action verbs and quantified impact.\n4. Grammar, Spelling & Consistency Issues: list specific corrections.\n5. Formatting & Structure Consistency: tense, date formats, capitalization, ordering, length.\n6. Skills & Achievements Showcase: how to better highlight skills and measurable achievements relevant to the target role, including keywords to add for ATS.\n7. Prioritized Action Checklist: the top 5-7 improvements ranked by impact.\n\nBe specific, actionable, and encouraging. Use markdown headings and bullet points.",
+        "batching": {}
+      },
+      "id": "b9cea3a3-c21d-4b1a-9326-fea1c195b65c",
+      "name": "Resume Review Agent",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        896,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "Resume_PDF",
+        "options": {
+          "joinPages": true
+        }
+      },
+      "id": "63fcf6cb-4729-4fe8-a6a5-07e4d19e3a27",
+      "name": "Extract PDF Text",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        448,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "role",
+              "name": "jobRole",
+              "type": "string",
+              "value": "={{ $('Resume Review Form').item.json['Target Job Role'] }}"
+            },
+            {
+              "id": "resume",
+              "name": "resumeText",
+              "type": "string",
+              "value": "={{ $json.text }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "508a64a4-62aa-45a1-a7b2-3fa4f159a557",
+      "name": "Use File Text",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        672,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        832,
+        320
+      ],
+      "id": "63138e1a-e016-4c69-b237-e3a2728d4ff4",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "62libNKU6K1wVzAl",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Resume Review Form": {
+      "main": [
+        [
+          {
+            "node": "Resume Text Provided?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resume Text Provided?": {
+      "main": [
+        [
+          {
+            "node": "Use Pasted Text",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extract PDF Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Use Pasted Text": {
+      "main": [
+        [
+          {
+            "node": "Resume Review Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract PDF Text": {
+      "main": [
+        [
+          {
+            "node": "Use File Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Use File Text": {
+      "main": [
+        [
+          {
+            "node": "Resume Review Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Resume Review Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "6630e774-fcc1-4b18-af55-706798f314d5",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "4d18e72c7717e52cef6d6bcf2e9bcc256a6d0cf3b8d68c123c60ed4570034ee9"
+  },
+  "nodeGroups": [],
+  "id": "lQxpbHugDpltvYqo",
+  "tags": []
+}
